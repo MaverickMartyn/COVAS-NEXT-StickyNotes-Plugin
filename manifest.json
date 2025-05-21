@@ -1,0 +1,9 @@
+{
+    "guid": "96fe8e7a-538f-441b-8f69-ad8880cd823f",
+    "name": "Sticky Notes",
+    "version": "0.0.1",
+    "author": "MaverickMartyn",
+    "repository": "https://github.com/MaverickMartyn/COVAS-NEXT-StickyNotes-Plugin",
+    "description": "A notes & lists plugin for COVAS:NEXT.",
+    "entrypoint": "StickyNotes.py"
+}
