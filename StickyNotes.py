@@ -1,4 +1,6 @@
 from typing import Any, override
+
+from numpy import require
 from .NotesStore import NotesStore
 from lib.PluginHelper import PluginHelper, PluginManifest
 from lib.PluginSettingDefinitions import PluginSettings, SettingsGrid, ParagraphSetting
@@ -41,34 +43,33 @@ class StickyNotes(PluginBase):
     @override
     def register_actions(self, helper: PluginHelper):
         # Register actions
-        helper.register_action('sticky_notes_update_note', "Adds or updates a note.", {
+        helper.register_action('sticky_notes_update_note', "Adds, updates or deletes a note.", {
             "type": "object",
             "properties": {
                 "id": {
                     "type": "integer",
-                    "description": "The ID of the note to update. If not provided, a new note will be created."
+                    "description": "The ID of the note to update or delete. Required for 'update' and 'delete' actions, but not for 'add'."
+                },
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "add", "update", "delete"
+                    ],
+                    "description": "The action to perform on the note. Can be 'add', 'update', or 'delete'."
                 },
                 "content": {
                     "type": "string",
-                    "description": "The content of the note."
+
+                    "description": "The content of the note. Required for 'add' and 'update' actions."
                 }
-            }
+            },
+            "required": ["action"],
         }, self.sticky_notes_update_note, 'global')
 
         helper.register_action('sticky_notes_get_notes', "Gets all notes.", {
             "type": "object",
             "properties": {}
         }, self.sticky_notes_get_notes, 'global')
-
-        helper.register_action('sticky_notes_delete_note', "Deletes a note.", {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer",
-                    "description": "The ID of the note to delete."
-                }
-            }
-        }, self.sticky_notes_delete_note, 'global')
 
         log('debug', f"Actions registered for {self.plugin_manifest.name}")
         
@@ -114,41 +115,48 @@ class StickyNotes(PluginBase):
 
     # Actions
     def sticky_notes_update_note(self, args, projected_states) -> str:
-        if 'content' not in args:
-            return "Content is required to create or update a note."
+        if 'action' not in args:
+            return "Action is required. Please specify 'add', 'update', or 'delete'."
+        
+        if args['action'] in ['update', 'delete'] and 'id' not in args:
+            return "ID is required for 'update' and 'delete' actions."
+        
+        if args['action'] in ['add', 'update'] and 'content' not in args:
+            return "Content is required for 'add' and 'update' actions."
 
         if self._notes_store is None:
             return "Store is not initialized. Please initialize the plugin first."
 
-        if 'id' in args:
+        if args['action'] == 'delete':
+            # Delete note
+            if self._notes_store.delete_note(args['id']):
+                return f"Note with ID {args['id']} deleted."
+
+            return f"Note with ID {args['id']} not found."
+
+        elif args['action'] == 'update':
             # Update existing note
             if self._notes_store.update_note(args['id'], args['content']):
                 return f"Note with ID {args['id']} updated."
+
             return f"Note with ID {args['id']} not found."
-        else:
+
+        elif args['action'] == 'add':
             # Create new note
             new_note_id = self._notes_store.add_note(args['content'])
             if new_note_id is None:
                 return "Failed to create a new note."
+
             return f"New note created with ID {new_note_id}."
+            
+        else:
+            return "Invalid action. Please specify 'add', 'update', or 'delete'."
     
     def sticky_notes_get_notes(self, args, projected_states) -> str:
         if self._notes_store is None:
             return "Store is not initialized. Please initialize the plugin first."
 
         return str(self._notes_store.get_notes())
-    
-    def sticky_notes_delete_note(self, args, projected_states) -> str:
-        if 'id' not in args:
-            return "ID is required to delete a note."
-
-        if self._notes_store is None:
-            return "Store is not initialized. Please initialize the plugin first."
-        
-        if self._notes_store.delete_note(args['id']):
-            return f"Note with ID {args['id']} deleted."
-        
-        return f"Note with ID {args['id']} not found."
 
     def all_notes_status_generator(self, projected_states: dict[str, dict]) -> list[tuple[str, Any]]:
         ret_val = []
