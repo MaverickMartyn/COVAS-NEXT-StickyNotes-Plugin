@@ -72,31 +72,6 @@ class StickyNotes(PluginBase):
         }, self.sticky_notes_get_notes, 'global')
 
         log('debug', f"Actions registered for {self.plugin_manifest.name}")
-        
-    @override
-    def register_projections(self, helper: PluginHelper):
-        # Register projections
-        pass
-
-    @override
-    def register_sideeffects(self, helper: PluginHelper):
-        # Register side effects
-        pass
-        
-    @override
-    def register_prompt_event_handlers(self, helper: PluginHelper):
-        # Register prompt generators
-        pass
-        
-    @override
-    def register_status_generators(self, helper: PluginHelper):
-        # Register prompt generators
-        helper.register_status_generator(self.all_notes_status_generator)
-
-    @override
-    def register_should_reply_handlers(self, helper: PluginHelper):
-        # Register should_reply handlers
-        pass
     
     @override
     def on_plugin_helper_ready(self, helper: PluginHelper):
@@ -107,11 +82,6 @@ class StickyNotes(PluginBase):
         self._notes_store = NotesStore(db_path)
         self._notes_store.initialize_db()
         log('debug', f"Database initialized at {db_path}")
-    
-    @override
-    def on_chat_stop(self, helper: PluginHelper):
-        # Executed when the chat is stopped
-        pass
 
     # Actions
     def sticky_notes_update_note(self, args, projected_states) -> str:
